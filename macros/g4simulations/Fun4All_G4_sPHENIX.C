@@ -169,8 +169,8 @@ int Fun4All_G4_sPHENIX(
       PHPythia8* pythia8 = new PHPythia8();
       // see coresoftware/generators/PHPythia8 for example config
       pythia8->set_config_file("phpythia8.cfg"); 
-
-      pythia8->beam_vertex_parameters(0,0,0,0,0,5);
+      // smear z vtx uniformly by +-10 cm (positive means gaussian smearing)
+      pythia8->beam_vertex_parameters(0,0,0,0,0,-10);
       pythia8->register_trigger(theTrigger);
 
       se->registerSubsystem(pythia8);
