@@ -25,7 +25,7 @@ int Fun4All_G4_sPHENIX(
   const bool readhepmc = false; // read HepMC files
   // Or:
   // Use pythia
-  const bool runpythia8 = false;
+  const bool runpythia8 = true;
   const bool runpythia6 = false;
   //
   // **** And ****
@@ -36,7 +36,7 @@ int Fun4All_G4_sPHENIX(
 
   // Besides the above flags. One can further choose to further put in following particles in Geant4 simulation
   // Use multi-particle generator (PHG4SimpleEventGenerator), see the code block below to choose particle species and kinematics
-  const bool particles = true && !readhits;
+  const bool particles = false && !readhits;
   // or gun/ very simple single particle gun generator
   const bool usegun = false && !readhits;
   // Throw single Upsilons, may be embedded in Hijing by setting readhepmc flag also  (note, careful to set Z vertex equal to Hijing events)
@@ -160,11 +160,21 @@ int Fun4All_G4_sPHENIX(
   else if (runpythia8)
     {
       gSystem->Load("libPHPythia8.so");
-      
+
+      PHPy8JetTrigger *theTrigger = new PHPy8JetTrigger();
+      theTrigger->SetEtaHighLow(-1, 1);
+      theTrigger->SetJetR(.4);
+      theTrigger->SetMinJetPt(20);
+
       PHPythia8* pythia8 = new PHPythia8();
       // see coresoftware/generators/PHPythia8 for example config
       pythia8->set_config_file("phpythia8.cfg"); 
+
+      pythia8->beam_vertex_parameters(0,0,0,0,0,5);
+      pythia8->register_trigger(theTrigger);
+
       se->registerSubsystem(pythia8);
+      pythia8->print_config();
 
       HepMCNodeReader *hr = new HepMCNodeReader();
       se->registerSubsystem(hr);
