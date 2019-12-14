@@ -76,7 +76,8 @@ int Fun4All_G4_fsPHENIX(
   // central tracking
   bool do_tracking = true;
   bool do_tracking_cell = do_tracking && true;
-  bool do_tracking_track = do_tracking_cell && true;
+  bool do_tracking_cluster = do_tracking_cell && true;
+  bool do_tracking_track = do_tracking_cluster && true;
   bool do_tracking_eval = do_tracking_track && true;
 
   // central calorimeters, which is a detailed simulation and slow to run
@@ -128,7 +129,7 @@ int Fun4All_G4_fsPHENIX(
   bool do_dst_compress = false;
   
   //Option to convert DST to human command readable TTree for quick poke around the outputs
-  bool do_DSTReader = true;
+  bool do_DSTReader = false;
   //---------------
   // Load libraries
   //---------------
@@ -137,7 +138,6 @@ int Fun4All_G4_fsPHENIX(
   gSystem->Load("libg4detectors.so");
   gSystem->Load("libphhepmc.so");
   gSystem->Load("libg4testbench.so");
-  gSystem->Load("libg4hough.so");
   gSystem->Load("libg4eval.so");
   gSystem->Load("libg4intt.so");
   // establish the geometry and reconstruction setup
@@ -311,6 +311,7 @@ int Fun4All_G4_fsPHENIX(
   //--------------
   // SVTX tracking
   //--------------
+  if (do_tracking_cluster) Tracking_Clus();
 
   if (do_tracking_track) Tracking_Reco();
 
