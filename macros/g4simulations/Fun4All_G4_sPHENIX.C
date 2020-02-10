@@ -239,7 +239,7 @@ int Fun4All_G4_sPHENIX(
       // see coresoftware/generators/PHPythia8 for example config
       pythia8->set_config_file("phpythia8.cfg"); 
       // smear z vtx uniformly by +-10 cm (positive means gaussian smearing)
-      pythia8->set_vertex_distribution_function(PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Uniform,PHHepMCGenHelper::Gaus)
+      pythia8->set_vertex_distribution_function(PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Uniform,PHHepMCGenHelper::Gaus);
       pythia8->set_vertex_distribution_width(0, 0, 10, 0);
       pythia8->register_trigger(theTrigger);
 
