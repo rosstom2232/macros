@@ -1,4 +1,30 @@
-
+#pragma once
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,00,0)
+#include "GlobalVariables.C"
+#include <caloreco/RawClusterBuilderTemplate.h>
+#include <caloreco/RawTowerCalibration.h>
+#include <caloreco/RawClusterBuilderGraph.h>
+#include <caloreco/RawClusterPositionCorrection.h>
+#include <fun4all/Fun4AllServer.h>
+#include <g4detectors/PHG4CylinderCellReco.h>
+#include <g4detectors/PHG4CylinderGeom_Spacalv1.h>
+#include <g4detectors/PHG4CylinderSubsystem.h>
+#include <g4detectors/PHG4FullProjSpacalCellReco.h>
+#include <g4detectors/PHG4SpacalSubsystem.h>
+#include <g4calo/RawTowerBuilder.h>
+#include <g4calo/RawTowerDigitizer.h>
+#include <g4eval/CaloEvaluator.h>
+#include <g4main/PHG4Reco.h>
+double
+CEmc_1DProjectiveSpacal(PHG4Reco *g4Reco, double radius, const int crossings, const int absorberactive = 0);
+double
+CEmc_2DProjectiveSpacal(PHG4Reco *g4Reco, double radius, const int crossings,
+                        const int absorberactive = 0);
+R__LOAD_LIBRARY(libcalo_reco.so)
+R__LOAD_LIBRARY(libg4calo.so)
+R__LOAD_LIBRARY(libg4detectors.so)
+R__LOAD_LIBRARY(libg4eval.so)
+#endif
 int Min_cemc_layer = 1;
 int Max_cemc_layer = 1;
 
@@ -7,6 +33,18 @@ int Max_cemc_layer = 1;
 //int Cemc_spacal_configuration = PHG4CylinderGeom_Spacalv1::k1DProjectiveSpacal;
 //   2D azimuthal projective SPACAL (slow)
 int Cemc_spacal_configuration = PHG4CylinderGeom_Spacalv1::k2DProjectiveSpacal;
+
+enum enu_Cemc_clusterizer
+{
+  kCemcGraphClusterizer,
+
+  kCemcTemplateClusterizer
+};
+
+//! template clusterizer, RawClusterBuilderTemplate, as developed by Sasha Bazilevsky
+enu_Cemc_clusterizer Cemc_clusterizer = kCemcTemplateClusterizer;
+//! graph clusterizer, RawClusterBuilderGraph
+//enu_Cemc_clusterizer Cemc_clusterizer = kCemcGraphClusterizer;
 
 #include <iostream>
 
@@ -216,7 +254,7 @@ CEmc_2DProjectiveSpacal(PHG4Reco *g4Reco, double radius, const int crossings,
     cemc->Verbosity(0);
 
     cemc->UseCalibFiles(PHG4DetectorSubsystem::xml);
-    cemc->SetCalibrationFileDir(string(getenv("CALIBRATIONROOT")) + string("/CEMC/Geometry_2017ProjTilted/"));
+    cemc->SetCalibrationFileDir(string(getenv("CALIBRATIONROOT")) + string("/CEMC/Geometry_2018ProjTilted/"));
     cemc->set_double_param("radius", radius);            // overwrite minimal radius
     cemc->set_double_param("thickness", cemcthickness);  // overwrite thickness
 
@@ -257,8 +295,7 @@ void CEMC_Cells(int verbosity = 0)
       //          cemc_cells->etaphisize(i, 0.024, 0.024);
       const double radius = 95;
       cemc_cells->cellsize(i, 2 * TMath::Pi() / 256. * radius, 2 * TMath::Pi() / 256. * radius);
-      cemc_cells->set_double_param(i, "tmin", 0.);
-      cemc_cells->set_double_param(i, "tmax", 60.);
+
     }
     se->registerSubsystem(cemc_cells);
   }
@@ -267,7 +304,6 @@ void CEMC_Cells(int verbosity = 0)
     PHG4FullProjSpacalCellReco *cemc_cells = new PHG4FullProjSpacalCellReco("CEMCCYLCELLRECO");
     cemc_cells->Detector("CEMC");
     cemc_cells->Verbosity(verbosity);
-    cemc_cells->set_timing_window(0.0, 60.0);
     cemc_cells->get_light_collection_model().load_data_file(
         string(getenv("CALIBRATIONROOT")) + string("/CEMC/LightCollection/Prototype3Module.xml"),
         "data_grid_light_guide_efficiency", "data_grid_fiber_trans");
@@ -287,8 +323,8 @@ void CEMC_Cells(int verbosity = 0)
 
 void CEMC_Towers(int verbosity = 0)
 {
-  gSystem->Load("libfun4all.so");
-  gSystem->Load("libg4detectors.so");
+  gSystem->Load("libg4calo.so");
+  gSystem->Load("libcalo_reco.so");
   Fun4AllServer *se = Fun4AllServer::instance();
 
   RawTowerBuilder *TowerBuilder = new RawTowerBuilder("EmcRawTowerBuilder");
@@ -318,7 +354,7 @@ void CEMC_Towers(int verbosity = 0)
     return;
   }
 
-  static const double photoelectron_per_GeV = 500;  //500 photon per total GeV deposition
+  const double photoelectron_per_GeV = 500;  //500 photon per total GeV deposition
 
   RawTowerDigitizer *TowerDigitizer = new RawTowerDigitizer("EmcRawTowerDigitizer");
   TowerDigitizer->Detector("CEMC");
@@ -367,19 +403,40 @@ void CEMC_Towers(int verbosity = 0)
 
 void CEMC_Clusters(int verbosity = 0)
 {
-  gSystem->Load("libfun4all.so");
-  gSystem->Load("libg4detectors.so");
+  gSystem->Load("libcalo_reco.so");
   Fun4AllServer *se = Fun4AllServer::instance();
 
-  RawClusterBuilder *ClusterBuilder = new RawClusterBuilder("EmcRawClusterBuilder");
-  ClusterBuilder->Detector("CEMC");
-  ClusterBuilder->Verbosity(verbosity);
-  se->registerSubsystem(ClusterBuilder);
+  if (Cemc_clusterizer == kCemcTemplateClusterizer)
+  {
+    RawClusterBuilderTemplate *ClusterBuilder = new RawClusterBuilderTemplate("EmcRawClusterBuilderTemplate");
+    ClusterBuilder->Detector("CEMC");
+    ClusterBuilder->Verbosity(verbosity);
+    se->registerSubsystem(ClusterBuilder);
+  }
+  else if (Cemc_clusterizer == kCemcGraphClusterizer)
+  {
+    RawClusterBuilderGraph *ClusterBuilder = new RawClusterBuilderGraph("EmcRawClusterBuilderGraph");
+    ClusterBuilder->Detector("CEMC");
+    ClusterBuilder->Verbosity(verbosity);
+    se->registerSubsystem(ClusterBuilder);
+  }
+  else
+  {
+    cout <<"CEMC_Clusters - unknown clusterizer setting!"<<endl;
+    exit(1);
+  }
+
 
   RawClusterPositionCorrection *clusterCorrection = new RawClusterPositionCorrection("CEMC");
-  clusterCorrection->GetCalibrationParameters().ReadFromFile("CEMC_RECALIB","xml",0,0,
+ 
+  clusterCorrection->Get_eclus_CalibrationParameters().ReadFromFile("CEMC_RECALIB","xml",0,0,
 							//raw location
-							string(getenv("CALIBRATIONROOT"))+string("/CEMC/PositionRecalibration/"));
+							string(getenv("CALIBRATIONROOT"))+string("/CEMC/PositionRecalibration_EMCal_9deg_tilt/"));
+				        
+  clusterCorrection->Get_ecore_CalibrationParameters().ReadFromFile("CEMC_ECORE_RECALIB","xml",0,0,
+						       //raw location
+								    string(getenv("CALIBRATIONROOT"))+string("/CEMC/PositionRecalibration_EMCal_9deg_tilt/"));
+				        
   clusterCorrection->Verbosity(verbosity);
   se->registerSubsystem(clusterCorrection);
 

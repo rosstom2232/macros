@@ -1,12 +1,52 @@
+#pragma once
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,00,0)
+#include <fun4all/SubsysReco.h>
+#include <fun4all/Fun4AllServer.h>
+#include <fun4all/Fun4AllInputManager.h>
+#include <fun4all/Fun4AllDummyInputManager.h>
+#include <fun4all/Fun4AllOutputManager.h>
+#include <fun4all/Fun4AllDstInputManager.h>
+#include <fun4all/Fun4AllNoSyncDstInputManager.h>
+#include <fun4all/Fun4AllDstOutputManager.h>
+#include <g4main/PHG4ParticleGeneratorBase.h>
+#include <g4main/PHG4ParticleGenerator.h>
+#include <g4main/PHG4SimpleEventGenerator.h>
+#include <g4main/PHG4ParticleGeneratorVectorMeson.h>
+#include <g4main/PHG4ParticleGun.h>
+#include <g4main/HepMCNodeReader.h>
+#include <g4main/ReadEICFiles.h>
+#include <g4detectors/PHG4DetectorSubsystem.h>
+#include <g4eval/PHG4DSTReader.h>
+#include <phhepmc/Fun4AllHepMCInputManager.h>
+#include <phool/recoConsts.h>
+#include <phpythia6/PHPythia6.h>
+#include <phpythia8/PHPythia8.h>
+#include <phsartre/PHSartre.h>
+#include <phsartre/PHSartreParticleTrigger.h>
+#include "G4Setup_EICDetector.C"
+#include "G4_Bbc.C"
+#include "G4_Global.C"
+#include "G4_CaloTrigger.C"
+#include "G4_Jets.C"
+#include "G4_HIJetReco.C"
+#include "G4_FwdJets.C"
+#include "G4_DSTReader_EICDetector.C"
+#include "DisplayOn.C"
+R__LOAD_LIBRARY(libfun4all.so)
+R__LOAD_LIBRARY(libg4testbench.so)
+R__LOAD_LIBRARY(libPHPythia6.so)
+R__LOAD_LIBRARY(libPHPythia8.so)
+R__LOAD_LIBRARY(libPHSartre.so)
+#endif
+
+using namespace std;
+
 int Fun4All_G4_EICDetector(
                            const int nEvents = 1,
                            const char * inputFile = "/sphenix/data/data02/review_2017-08-02/single_particle/spacal2d/fieldmap/G4Hits_sPHENIX_e-_eta0_8GeV-0002.root",
                            const char * outputFile = "G4EICDetector.root"
                            )
 {
-  // Set the number of TPC layer
-  const int n_TPC_layers = 40;  // use 60 for backward compatibility only
-
   //===============
   // Input options
   //===============
@@ -42,9 +82,9 @@ int Fun4All_G4_EICDetector(
 
   // Besides the above flags. One can further choose to further put in following particles in Geant4 simulation
   // Use multi-particle generator (PHG4SimpleEventGenerator), see the code block below to choose particle species and kinematics
-  const bool particles = false && !readhits;
+  const bool particles = true && !readhits;
   // or gun/ very simple single particle gun generator
-  const bool usegun = true && !readhits;
+  const bool usegun = false && !readhits;
   // Throw single Upsilons, may be embedded in Hijing by setting readhepmc flag also  (note, careful to set Z vertex equal to Hijing events)
   const bool upsilons = false && !readhits;
 
@@ -57,10 +97,11 @@ int Fun4All_G4_EICDetector(
 
   bool do_pipe = true;
 
-  bool do_svtx = true;
-  bool do_svtx_cell = do_svtx && true;
-  bool do_svtx_track = do_svtx_cell && true;
-  bool do_svtx_eval = do_svtx_track && true;
+  bool do_tracking = true;
+  bool do_tracking_cell = do_tracking && true;
+  bool do_tracking_track = do_tracking_cell && true;
+  bool do_tracking_eval = do_tracking_track && true; // in order to use this evaluation, please build this analysis module analysis/blob/master/Tracking/FastTrackingEval/
+  bool do_vertex_finding = false; // this option exclude vertex in the track fitting and use RAVE to reconstruct primary and 2ndary vertexes
 
   bool do_pstof = false;
 
@@ -88,9 +129,6 @@ int Fun4All_G4_EICDetector(
   bool do_DIRC = true;
 
   // EICDetector geometry - 'hadron' direction
-  bool do_FGEM = true;
-  bool do_FGEM_track = do_FGEM &&  true;
-
   bool do_RICH = true;
   bool do_Aerogel = true;
 
@@ -107,27 +145,23 @@ int Fun4All_G4_EICDetector(
   bool do_FHCAL_eval = do_FHCAL_cluster && true;
 
   // EICDetector geometry - 'electron' direction
-  bool do_EGEM = true;
-  bool do_EGEM_track = do_EGEM &&  true;
-
   bool do_EEMC = true;
   bool do_EEMC_cell = do_EEMC && true;
   bool do_EEMC_twr = do_EEMC_cell && true;
   bool do_EEMC_cluster = do_EEMC_twr && true;
   bool do_EEMC_eval = do_EEMC_cluster && true;
 
-
-  // Extended IR
-  bool do_ExtendedIR = true;
-
+  bool do_plugdoor = true;
 
   // Other options
   bool do_global = true;
-  bool do_global_fastsim = false;
+  bool do_global_fastsim = true;
 
   bool do_calotrigger = false && do_cemc_twr && do_hcalin_twr && do_hcalout_twr;
 
-  bool do_jet_reco = true;
+  // Select only one jet reconstruction- they currently use the same
+  // output collections on the node tree!
+  bool do_jet_reco = false;
   bool do_jet_eval = do_jet_reco && true;
 
   bool do_fwd_jet_reco = true;
@@ -142,7 +176,7 @@ int Fun4All_G4_EICDetector(
   bool do_dst_compress = false;
 
   //Option to convert DST to human command readable TTree for quick poke around the outputs
-  bool do_DSTReader = true;
+  bool do_DSTReader = false;
 
   //---------------
   // Load libraries
@@ -152,25 +186,23 @@ int Fun4All_G4_EICDetector(
   gSystem->Load("libg4detectors.so");
   gSystem->Load("libphhepmc.so");
   gSystem->Load("libg4testbench.so");
-  gSystem->Load("libg4hough.so");
-  gSystem->Load("libcemc.so");
   gSystem->Load("libg4eval.so");
 
   // establish the geometry and reconstruction setup
   gROOT->LoadMacro("G4Setup_EICDetector.C");
-  G4Init(do_svtx,do_cemc,do_hcalin,do_magnet,do_hcalout,do_pipe,do_FGEM,do_EGEM,do_FEMC,do_FHCAL,do_EEMC,do_DIRC,do_RICH,do_Aerogel,n_TPC_layers,do_ExtendedIR);
+  G4Init(do_tracking,do_cemc,do_hcalin,do_magnet,do_hcalout,do_pipe,do_plugdoor,do_FEMC,do_FHCAL,do_EEMC,do_DIRC,do_RICH,do_Aerogel);
 
   int absorberactive = 0; // set to 1 to make all absorbers active volumes
-  //  const string magfield = "1.5"; // if like float -> solenoidal field in T, if string use as fieldmap name (including path)
-  const string magfield = "/phenix/upgrades/decadal/fieldmaps/sPHENIX.2d.root"; // if like float -> solenoidal field in T, if string use as fieldmap name (including path)
-  const float magfield_rescale = 1.4/1.5; // scale the map to a 1.4 T field
+  //  const string magfield = "1.5"; // alternatively to specify a constant magnetic field, give a float number, which will be translated to solenoidal field in T, if string use as fieldmap name (including path)
+  const string magfield = string(getenv("CALIBRATIONROOT")) + string("/Field/Map/sPHENIX.2d.root"); // default map from the calibration database
+  const float magfield_rescale = -1.4/1.5; // scale the map to a 1.4 T field. Reverse field sign to get around a bug in RAVE
 
   //---------------
   // Fun4All server
   //---------------
 
   Fun4AllServer *se = Fun4AllServer::instance();
-  se->Verbosity(0); // uncomment for batch production running with minimal output messages
+  // se->Verbosity(01); // uncomment for batch production running with minimal output messages
   // se->Verbosity(Fun4AllServer::VERBOSITY_SOME); // uncomment for some info for interactive running
 
   // just if we set some flags somewhere in this macro
@@ -196,10 +228,7 @@ int Fun4All_G4_EICDetector(
     }
   else if (readhepmc)
     {
-      // this module is needed to read the HepMC records into our G4 sims
-      // but only if you read HepMC input files
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
+    // action is performed in later stage at the input manager level
     }
   else if (readeictree)
     {
@@ -208,9 +237,6 @@ int Fun4All_G4_EICDetector(
       eicr->OpenInputFile(inputFile);
 
       se->registerSubsystem(eicr);
-
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
   else if (runpythia8)
     {
@@ -220,9 +246,6 @@ int Fun4All_G4_EICDetector(
       // see coresoftware/generators/PHPythia8 for example config
       pythia8->set_config_file("phpythia8.cfg");
       se->registerSubsystem(pythia8);
-
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
   else if (runpythia6)
     {
@@ -232,10 +255,8 @@ int Fun4All_G4_EICDetector(
       // see coresoftware/generators/PHPythia6 for example config
       pythia6->set_config_file("phpythia6_ep.cfg");
       se->registerSubsystem(pythia6);
-
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
+/*
   else if (runhepgen)
     {
       gSystem->Load("libsHEPGen.so");
@@ -247,10 +268,8 @@ int Fun4All_G4_EICDetector(
       hepgen->set_momentum_electron(-20);
       hepgen->set_momentum_hadron(250);
       se->registerSubsystem(hepgen);
-
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
+*/
   else if (runsartre)
     {
       // see coresoftware/generators/PHSartre/README for setup instructions
@@ -270,9 +289,6 @@ int Fun4All_G4_EICDetector(
       pTrig->PrintConfig();
       mysartre->register_trigger((PHSartreGenTrigger *)pTrig);
       se->registerSubsystem(mysartre);
-
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
 
   // If "readhepMC" is also set, the particles will be embedded in Hijing events
@@ -282,6 +298,7 @@ int Fun4All_G4_EICDetector(
       PHG4SimpleEventGenerator *gen = new PHG4SimpleEventGenerator();
       gen->add_particles("pi-",1); // mu+,e+,proton,pi+,Upsilon
       //gen->add_particles("pi+",100); // 100 pion option
+
       if (readhepmc)
         {
           gen->set_reuse_existing_vertex(true);
@@ -297,7 +314,7 @@ int Fun4All_G4_EICDetector(
         }
       gen->set_vertex_size_function(PHG4SimpleEventGenerator::Uniform);
       gen->set_vertex_size_parameters(0.0, 0.0);
-      gen->set_eta_range(-1.0, 1.0);
+      gen->set_eta_range(-3, 3);
       gen->set_phi_range(-1.0 * TMath::Pi(), 1.0 * TMath::Pi());
       //gen->set_pt_range(0.1, 50.0);
       gen->set_pt_range(0.1, 20.0);
@@ -319,10 +336,10 @@ int Fun4All_G4_EICDetector(
       // gun->AddParticle("geantino",1.8121,0.253,0.);
       // se->registerSubsystem(gun);
       PHG4ParticleGenerator *pgen = new PHG4ParticleGenerator();
-      pgen->set_name("e-");
+      pgen->set_name("mu-");
       pgen->set_z_range(0,0);
-      pgen->set_eta_range(0.01,0.01);
-      pgen->set_mom_range(10,10);
+      pgen->set_eta_range(-4.0,0.0);
+      pgen->set_mom_range(30,30);
       pgen->set_phi_range(-1.0 * TMath::Pi(), 1.0 * TMath::Pi());
       se->registerSubsystem(pgen);
     }
@@ -338,10 +355,6 @@ int Fun4All_G4_EICDetector(
       if (readhepmc || particles)
         {
           vgen->set_reuse_existing_vertex(true);
-        }
-      else
-        {
-          vgen->set_vtx_zrange(-10.0, +10.0);
         }
 
       // Note: this rapidity range completely fills the acceptance of eta = +/- 1 unit
@@ -382,10 +395,18 @@ int Fun4All_G4_EICDetector(
       // Detector description
       //---------------------
 
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6,00,0)
+      G4Setup(absorberactive, magfield, EDecayType::kAll,
+              do_tracking,do_cemc,do_hcalin,do_magnet,do_hcalout,do_pipe,do_plugdoor,
+              do_FEMC,do_FHCAL,do_EEMC,do_DIRC,do_RICH,do_Aerogel,
+              magfield_rescale);
+#else
       G4Setup(absorberactive, magfield, TPythia6Decayer::kAll,
-              do_svtx,do_cemc,do_hcalin,do_magnet,do_hcalout,do_pipe,
-              do_FGEM,do_EGEM,do_FEMC,do_FHCAL,do_EEMC,do_DIRC,do_RICH,do_Aerogel,
-              do_ExtendedIR,magfield_rescale);
+              do_tracking,do_cemc,do_hcalin,do_magnet,do_hcalout,do_pipe,do_plugdoor,
+              do_FEMC,do_FHCAL,do_EEMC,do_DIRC,do_RICH,do_Aerogel,
+              magfield_rescale);
+#endif
+
     }
 
   //---------
@@ -403,7 +424,7 @@ int Fun4All_G4_EICDetector(
   // Detector Division
   //------------------
 
-  if (do_svtx_cell) Svtx_Cells();
+  if (do_tracking_cell) Svtx_Cells();
 
   if (do_cemc_cell) CEMC_Cells();
 
@@ -453,19 +474,7 @@ int Fun4All_G4_EICDetector(
   // SVTX tracking
   //--------------
 
-  if (do_svtx_track) Svtx_Reco();
-
-  //--------------
-  // FGEM tracking
-  //--------------
-
-  if(do_FGEM_track) FGEM_FastSim_Reco();
-
-  //--------------
-  // EGEM tracking
-  //--------------
-
-  if(do_EGEM_track) EGEM_FastSim_Reco();
+  if (do_tracking_track) Tracking_Reco(0, do_vertex_finding);
 
   //-----------------
   // Global Vertexing
@@ -517,8 +526,7 @@ int Fun4All_G4_EICDetector(
   //----------------------
   // Simulation evaluation
   //----------------------
-
-  if (do_svtx_eval) Svtx_Eval(string(outputFile) + "_g4svtx_eval.root");
+  if (do_tracking_eval) Tracking_Eval(string(outputFile) + "_g4tracking_eval.root");
 
   if (do_cemc_eval) CEMC_Eval(string(outputFile) + "_g4cemc_eval.root");
 
@@ -568,17 +576,14 @@ int Fun4All_G4_EICDetector(
 
       G4DSTreader_EICDetector( outputFile, //
                                /*int*/ absorberactive ,
-                               /*bool*/ do_svtx ,
+                               /*bool*/ do_tracking ,
                                /*bool*/ do_cemc ,
                                /*bool*/ do_hcalin ,
                                /*bool*/ do_magnet ,
                                /*bool*/ do_hcalout ,
                                /*bool*/ do_cemc_twr ,
                                /*bool*/ do_hcalin_twr ,
-                               /*bool*/ do_magnet  ,
                                /*bool*/ do_hcalout_twr,
-                               /*bool*/ do_FGEM,
-                               /*bool*/ do_EGEM,
                                /*bool*/ do_FHCAL,
                                /*bool*/ do_FHCAL_twr,
                                /*bool*/ do_FEMC,
@@ -597,14 +602,14 @@ int Fun4All_G4_EICDetector(
   //-----------------
   if (nEvents < 0)
     {
-      return;
+      return 0;
     }
   // if we run the particle generator and use 0 it'll run forever
   if (nEvents == 0 && !readhits && !readhepmc)
     {
       cout << "using 0 for number of events is a bad idea when using particle generators" << endl;
       cout << "it will run forever, so I just return without running anything" << endl;
-      return;
+      return 0;
     }
 
   se->run(nEvents);
@@ -617,4 +622,9 @@ int Fun4All_G4_EICDetector(
   std::cout << "All done" << std::endl;
   delete se;
   gSystem->Exit(0);
+  return 0;
 }
+
+// This function is only used to test if we can load this as root6 macro
+// without running into unresolved libraries and include files
+void RunFFALoadTest() {}
