@@ -41,7 +41,7 @@ using namespace std;
 
 
 int Fun4All_G4_sPHENIX(
-    const int nEvents = 1,
+    const int nEvents = 10,
     const char *inputFile = "/sphenix/data/data02/review_2017-08-02/single_particle/spacal2d/fieldmap/G4Hits_sPHENIX_e-_eta0_8GeV-0002.root",
     const char *outputFile = "G4sPHENIX.root",
     const char *embed_input_file = "/sphenix/data/data02/review_2017-08-02/sHijing/fm_0-4.list")
@@ -84,7 +84,8 @@ int Fun4All_G4_sPHENIX(
   // Event pile up simulation with collision rate in Hz MB collisions.
   // Note please follow up the macro to verify the settings for beam parameters
   const double pileup_collision_rate = 0;  // 100e3 for 100kHz nominal AuAu collision rate.
-  const bool do_write_output = false;
+
+  const bool do_write_output = true;
   // To write cluster files set do_write_output = true and set 
   // do_tracking = true, do_tracking_cell = true, do_tracking_cluster = true and 
   // leave the tracking for later do_tracking_track =  false,  do_tracking_eval = false
@@ -109,13 +110,13 @@ int Fun4All_G4_sPHENIX(
   bool do_cemc_cell = do_cemc && true;
   bool do_cemc_twr = do_cemc_cell && true;
   bool do_cemc_cluster = do_cemc_twr && true;
-  bool do_cemc_eval = do_cemc_cluster && true;
+  bool do_cemc_eval = do_cemc_cluster && false;
 
   bool do_hcalin = true;
   bool do_hcalin_cell = do_hcalin && true;
   bool do_hcalin_twr = do_hcalin_cell && true;
   bool do_hcalin_cluster = do_hcalin_twr && true;
-  bool do_hcalin_eval = do_hcalin_cluster && true;
+  bool do_hcalin_eval = do_hcalin_cluster && false;
 
   bool do_magnet = true;
 
@@ -123,14 +124,14 @@ int Fun4All_G4_sPHENIX(
   bool do_hcalout_cell = do_hcalout && true;
   bool do_hcalout_twr = do_hcalout_cell && true;
   bool do_hcalout_cluster = do_hcalout_twr && true;
-  bool do_hcalout_eval = do_hcalout_cluster && true;
+  bool do_hcalout_eval = do_hcalout_cluster && false;
 
   // forward EMC
   bool do_femc = false;
   bool do_femc_cell = do_femc && true;
   bool do_femc_twr = do_femc_cell && true;
   bool do_femc_cluster = do_femc_twr && true;
-  bool do_femc_eval = do_femc_cluster && true;
+  bool do_femc_eval = do_femc_cluster && false;
 
   //! forward flux return plug door. Out of acceptance and off by default.
   bool do_plugdoor = false;
