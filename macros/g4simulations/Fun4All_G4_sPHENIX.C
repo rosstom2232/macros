@@ -18,6 +18,7 @@
 #include <phool/recoConsts.h>
 #include <phpythia6/PHPythia6.h>
 #include <phpythia8/PHPythia8.h>
+#include <phpythia8/PHPy8JetTrigger.h>
 #include <phhepmc/Fun4AllHepMCPileupInputManager.h>
 #include <phhepmc/Fun4AllHepMCInputManager.h>
 #include "G4Setup_sPHENIX.C"
@@ -92,12 +93,12 @@ int Fun4All_G4_sPHENIX(
   // What to run
   //======================
 
-  bool do_bbc = false;
+  bool do_bbc = true;
 
   bool do_pipe = true;
 
   bool do_tracking = true;
-  bool do_tracking_cell = do_tracking && false;
+  bool do_tracking_cell = do_tracking && true;
   bool do_tracking_cluster = do_tracking_cell && true;
   bool do_tracking_track = do_tracking_cluster && true;
   bool do_tracking_eval = do_tracking_track && true;
@@ -105,13 +106,13 @@ int Fun4All_G4_sPHENIX(
   bool do_pstof = false;
 
   bool do_cemc = true;
-  bool do_cemc_cell = do_cemc && false;
+  bool do_cemc_cell = do_cemc && true;
   bool do_cemc_twr = do_cemc_cell && true;
   bool do_cemc_cluster = do_cemc_twr && true;
   bool do_cemc_eval = do_cemc_cluster && true;
 
   bool do_hcalin = true;
-  bool do_hcalin_cell = do_hcalin && false;
+  bool do_hcalin_cell = do_hcalin && true;
   bool do_hcalin_twr = do_hcalin_cell && true;
   bool do_hcalin_cluster = do_hcalin_twr && true;
   bool do_hcalin_eval = do_hcalin_cluster && true;
@@ -119,7 +120,7 @@ int Fun4All_G4_sPHENIX(
   bool do_magnet = true;
 
   bool do_hcalout = true;
-  bool do_hcalout_cell = do_hcalout && false;
+  bool do_hcalout_cell = do_hcalout && true;
   bool do_hcalout_twr = do_hcalout_cell && true;
   bool do_hcalout_cluster = do_hcalout_twr && true;
   bool do_hcalout_eval = do_hcalout_cluster && true;
@@ -134,12 +135,12 @@ int Fun4All_G4_sPHENIX(
   //! forward flux return plug door. Out of acceptance and off by default.
   bool do_plugdoor = false;
 
-  bool do_global = false;
-  bool do_global_fastsim = false;
+  bool do_global = true;
+  bool do_global_fastsim = true;
 
   bool do_calotrigger = true && do_cemc_twr && do_hcalin_twr && do_hcalout_twr;
 
-  bool do_jet_reco = false;
+  bool do_jet_reco = true;
   bool do_jet_eval = do_jet_reco && true;
 
   // HI Jet Reco for p+Au / Au+Au collisions (default is false for
@@ -150,7 +151,7 @@ int Fun4All_G4_sPHENIX(
   // 3-D topoCluster reconstruction in both HCal layers -- requires towers from both
   bool do_topoCluster = false && do_hcalin_twr && do_hcalout_twr;
 
-  bool do_dst_compress = false;
+  bool do_dst_compress = true;
 
   //Option to convert DST to human command readable TTree for quick poke around the outputs
   bool do_DSTReader = false;
@@ -238,14 +239,13 @@ int Fun4All_G4_sPHENIX(
       // see coresoftware/generators/PHPythia8 for example config
       pythia8->set_config_file("phpythia8.cfg"); 
       // smear z vtx uniformly by +-10 cm (positive means gaussian smearing)
-      pythia8->beam_vertex_parameters(0,0,0,0,0,-10);
+      pythia8->set_vertex_distribution_function(PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Gaus,PHHepMCGenHelper::Uniform,PHHepMCGenHelper::Gaus)
+      pythia8->set_vertex_distribution_width(0, 0, 10, 0);
       pythia8->register_trigger(theTrigger);
 
       se->registerSubsystem(pythia8);
       pythia8->print_config();
 
-      HepMCNodeReader *hr = new HepMCNodeReader();
-      se->registerSubsystem(hr);
     }
 
     if (runpythia6)
@@ -632,7 +632,7 @@ int Fun4All_G4_sPHENIX(
       cin >> i;
     }
 
-  se->run(nEvents);
+  se->run(nEvents, true);
 
   //-----
   // Exit
