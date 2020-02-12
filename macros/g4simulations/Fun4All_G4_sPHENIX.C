@@ -102,7 +102,7 @@ int Fun4All_G4_sPHENIX(
   bool do_tracking_cell = do_tracking && true;
   bool do_tracking_cluster = do_tracking_cell && true;
   bool do_tracking_track = do_tracking_cluster && true;
-  bool do_tracking_eval = do_tracking_track && true;
+  bool do_tracking_eval = do_tracking_track && false;
 
   bool do_pstof = false;
 
@@ -142,7 +142,7 @@ int Fun4All_G4_sPHENIX(
   bool do_calotrigger = true && do_cemc_twr && do_hcalin_twr && do_hcalout_twr;
 
   bool do_jet_reco = true;
-  bool do_jet_eval = do_jet_reco && true;
+  bool do_jet_eval = do_jet_reco && false;
 
   // HI Jet Reco for p+Au / Au+Au collisions (default is false for
   // single particle / p+p-only simulations, or for p+Au / Au+Au

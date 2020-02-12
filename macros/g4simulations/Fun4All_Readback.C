@@ -11,6 +11,7 @@
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 00, 0)
 
 //#include <anatutorial/AnaTutorial.h>
+#include <g4eval/SvtxEvaluator.h>
 
 #include <fun4all/Fun4AllDstInputManager.h>
 #include <fun4all/Fun4AllDstOutputManager.h>
@@ -20,11 +21,16 @@
 #include <fun4all/Fun4AllOutputManager.h>
 #include <fun4all/Fun4AllServer.h>
 #include <fun4all/SubsysReco.h>
+
 #include <phhepmc/Fun4AllHepMCInputManager.h>
+
+#include <hfjettruthgeneration/HFJetTruthTrigger.h>
 
 //R__LOAD_LIBRARY(libanatutorial.so)
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libg4dst.so)
+R__LOAD_LIBRARY(libg4eval.so)
+R__LOAD_LIBRARY(libHFJetTruthGeneration.so)
 
 #endif
 
@@ -57,19 +63,59 @@ void Fun4All_Readback(
   hitsin->fileopen(inputFile);
   se->registerInputManager(hitsin);
 
-  //  cout << "start book my analysis" << endl;
-  //  AnaTutorial *anaTutorial = new AnaTutorial("anaTutorial", string(outputFile) + "_anaTutorial.root");
-  //  anaTutorial->setMinJetPt(10.);
-  //  anaTutorial->Verbosity(100);
-  //  anaTutorial->analyzeTracks(true);
-  //  anaTutorial->analyzeClusters(false);
-  //  anaTutorial->analyzeJets(false);
-  //  anaTutorial->analyzeTruth(false);
-  //  se->registerSubsystem(anaTutorial);
-  //  cout << "register subsystem" << endl;
-  //-----------------
-  // Event processing
-  //-----------------
+  {
+    const int n_maps_layer = 3;  // must be 0-3, setting it to zero removes Mvtx completely, n < 3 gives the first n layers
+
+    int n_intt_layer = 4;  // must be 4 or 0, setting to zero removes INTT completely
+
+    int n_tpc_layer_inner = 16;
+    int tpc_layer_rphi_count_inner = 1152;
+    int n_tpc_layer_mid = 16;
+    int n_tpc_layer_outer = 16;
+    int n_gas_layer = n_tpc_layer_inner + n_tpc_layer_mid + n_tpc_layer_outer;
+
+    const bool g4eval_use_initial_vertex = false;  // if true, g4eval uses initial vertices in SvtxVertexMap, not final vertices in SvtxVertexMapRefit
+
+    //----------------
+    // Tracking evaluation
+    //----------------
+    SvtxEvaluator *eval;
+    eval = new SvtxEvaluator("SVTXEVALUATOR", outputFile, "SvtxTrackMap", n_maps_layer, n_intt_layer, n_gas_layer);
+    eval->do_cluster_eval(false);
+    eval->do_g4hit_eval(false);
+    eval->do_hit_eval(false);  // enable to see the hits that includes the chamber physics...
+    eval->do_gpoint_eval(false);
+    eval->do_eval_light(true);
+    eval->set_use_initial_vertex(g4eval_use_initial_vertex);
+    eval->scan_for_embedded(false);  // take all tracks if false - take only embedded tracks if true
+    eval->Verbosity(0);
+    se->registerSubsystem(eval);
+  }
+
+  // HF jet trigger moudle
+  // build https://github.com/sPHENIX-Collaboration/analysis/tree/master/HF-Jet/TruthGeneration locally
+  assert(gSystem->Load("libHFJetTruthGeneration") == 0);
+  {
+    {
+      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r07");
+      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+      se->registerSubsystem(jt);
+    }
+    {
+      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r04");
+      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+      se->registerSubsystem(jt);
+    }
+    {
+      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r02");
+      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+      se->registerSubsystem(jt);
+    }
+  }
+
   if (nEvents < 0)
   {
     return 0;
