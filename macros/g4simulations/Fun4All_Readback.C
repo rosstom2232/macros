@@ -12,6 +12,7 @@
 
 //#include <anatutorial/AnaTutorial.h>
 #include <g4eval/SvtxEvaluator.h>
+#include <g4eval/JetEvaluator.h>
 
 #include <fun4all/Fun4AllDstInputManager.h>
 #include <fun4all/Fun4AllDstOutputManager.h>
@@ -80,7 +81,7 @@ void Fun4All_Readback(
     // Tracking evaluation
     //----------------
     SvtxEvaluator *eval;
-    eval = new SvtxEvaluator("SVTXEVALUATOR", outputFile, "SvtxTrackMap", n_maps_layer, n_intt_layer, n_gas_layer);
+    eval = new SvtxEvaluator("SVTXEVALUATOR", string(outputFile) + "_SvtxEvaluator.root", "SvtxTrackMap", n_maps_layer, n_intt_layer, n_gas_layer);
     eval->do_cluster_eval(false);
     eval->do_g4hit_eval(false);
     eval->do_hit_eval(false);  // enable to see the hits that includes the chamber physics...
@@ -92,6 +93,16 @@ void Fun4All_Readback(
     se->registerSubsystem(eval);
   }
 
+  {
+
+    JetEvaluator* eval = new JetEvaluator("JETEVALUATOR",
+              "AntiKt_Tower_r04",
+              "AntiKt_Truth_r04",
+              string(outputFile) + "_JetEvaluator.root");
+    se->registerSubsystem(eval);
+
+  }
+
   // HF jet trigger moudle
   // build https://github.com/sPHENIX-Collaboration/analysis/tree/master/HF-Jet/TruthGeneration locally
   assert(gSystem->Load("libHFJetTruthGeneration") == 0);
@@ -99,6 +110,8 @@ void Fun4All_Readback(
     {
       HFJetTruthTrigger *jt = new HFJetTruthTrigger(
           "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r07");
+      jt->set_eta_min(-1);
+      jt->set_eta_max(1);
       //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
       se->registerSubsystem(jt);
     }
