@@ -612,13 +612,6 @@ int Fun4All_G4_sPHENIX(
                 /*bool*/ do_hcalout_twr);
   }
 
-  if(do_write_output) {
-    Fun4AllDstOutputManager *out = new Fun4AllDstOutputManager("DSTOUT", outputFile);
-    if (do_dst_compress) DstCompress(out);
-    se->registerOutputManager(out);
-  }
-
-
   // QA parts
   {
 
@@ -662,6 +655,13 @@ int Fun4All_G4_sPHENIX(
       se->registerSubsystem(calo_jet2);
     }
   }
+
+  if(do_write_output) {
+    Fun4AllDstOutputManager *out = new Fun4AllDstOutputManager("DSTOUT", outputFile);
+    if (do_dst_compress) DstCompress(out);
+    se->registerOutputManager(out);
+  }
+
 
 
   //-----------------
