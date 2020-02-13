@@ -21,6 +21,10 @@
 #include <phpythia8/PHPy8JetTrigger.h>
 #include <phhepmc/Fun4AllHepMCPileupInputManager.h>
 #include <phhepmc/Fun4AllHepMCInputManager.h>
+#include <qa_modules/QAG4SimulationCalorimeter.h>
+#include <qa_modules/QAG4SimulationCalorimeterSum.h>
+#include <qa_modules/QAG4SimulationJet.h>
+#include <qa_modules/QAHistManagerDef.h>
 #include "G4Setup_sPHENIX.C"
 #include "G4_Bbc.C"
 #include "G4_Global.C"
@@ -35,6 +39,8 @@ R__LOAD_LIBRARY(libg4testbench.so)
 R__LOAD_LIBRARY(libphhepmc.so)
 R__LOAD_LIBRARY(libPHPythia6.so)
 R__LOAD_LIBRARY(libPHPythia8.so)
+R__LOAD_LIBRARY(libqa_modules.so)
+
 #endif
 
 using namespace std;
@@ -166,6 +172,8 @@ int Fun4All_G4_sPHENIX(
   gSystem->Load("libg4testbench.so");
   gSystem->Load("libg4eval.so");
   gSystem->Load("libg4intt.so");
+  gSystem->Load("libqa_modules");
+
   // establish the geometry and reconstruction setup
   gROOT->LoadMacro("G4Setup_sPHENIX.C");
   G4Init(do_tracking, do_pstof, do_cemc, do_hcalin, do_magnet, do_hcalout, do_pipe, do_plugdoor, do_femc);
@@ -609,6 +617,53 @@ int Fun4All_G4_sPHENIX(
     if (do_dst_compress) DstCompress(out);
     se->registerOutputManager(out);
   }
+
+
+  // QA parts
+  {
+
+    if (do_cemc)
+      se->registerSubsystem(new QAG4SimulationCalorimeter("CEMC"));
+    if (do_hcalin)
+      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALIN"));
+    if (do_hcalout)
+      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALOUT"));
+
+    if (do_tracking && do_cemc && do_hcalin && do_hcalout)
+    {
+      QAG4SimulationCalorimeterSum *calo_qa =
+          new QAG4SimulationCalorimeterSum();
+      //    calo_qa->Verbosity(10);
+      se->registerSubsystem(calo_qa);
+    }
+
+    if (do_jet_reco)
+    {
+      QAG4SimulationJet *calo_jet7 = new QAG4SimulationJet(
+          "AntiKt_Truth_r07");
+      calo_jet7->add_reco_jet("AntiKt_Tower_r07");
+      calo_jet7->add_reco_jet("AntiKt_Cluster_r07");
+      calo_jet7->add_reco_jet("AntiKt_Track_r07");
+      //    calo_jet7->Verbosity(20);
+      se->registerSubsystem(calo_jet7);
+
+      QAG4SimulationJet *calo_jet4 = new QAG4SimulationJet(
+          "AntiKt_Truth_r04");
+      calo_jet4->add_reco_jet("AntiKt_Tower_r04");
+      calo_jet4->add_reco_jet("AntiKt_Cluster_r04");
+      calo_jet4->add_reco_jet("AntiKt_Track_r04");
+      se->registerSubsystem(calo_jet4);
+
+      QAG4SimulationJet *calo_jet2 = new QAG4SimulationJet(
+          "AntiKt_Truth_r02");
+      calo_jet2->add_reco_jet("AntiKt_Tower_r02");
+      calo_jet2->add_reco_jet("AntiKt_Cluster_r02");
+      calo_jet2->add_reco_jet("AntiKt_Track_r02");
+      se->registerSubsystem(calo_jet2);
+    }
+  }
+
+
   //-----------------
   // Event processing
   //-----------------
@@ -635,6 +690,10 @@ int Fun4All_G4_sPHENIX(
 
   se->run(nEvents, true);
 
+  // QA outputs
+  {
+    QAHistManagerDef::saveQARootFile(string(outputFile) + "_qa.root");
+  }
   //-----
   // Exit
   //-----
