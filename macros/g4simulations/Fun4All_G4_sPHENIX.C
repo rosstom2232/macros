@@ -614,13 +614,17 @@ int Fun4All_G4_sPHENIX(
 
   // QA parts
   {
-
     if (do_cemc)
-      se->registerSubsystem(new QAG4SimulationCalorimeter("CEMC"));
+      se->registerSubsystem(new QAG4SimulationCalorimeter("CEMC",
+          static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
     if (do_hcalin)
-      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALIN"));
+      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALIN",
+          static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
+
     if (do_hcalout)
-      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALOUT"));
+      se->registerSubsystem(new QAG4SimulationCalorimeter("HCALOUT",
+          static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
+
 
     if (do_tracking && do_cemc && do_hcalin && do_hcalout)
     {
