@@ -25,6 +25,7 @@
 #include <qa_modules/QAG4SimulationCalorimeterSum.h>
 #include <qa_modules/QAG4SimulationJet.h>
 #include <qa_modules/QAHistManagerDef.h>
+#include <qa_modules/QAG4SimulationTracking.h>
 #include "G4Setup_sPHENIX.C"
 #include "G4_Bbc.C"
 #include "G4_Global.C"
