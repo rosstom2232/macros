@@ -11,8 +11,8 @@
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 00, 0)
 
 //#include <anatutorial/AnaTutorial.h>
-#include <g4eval/SvtxEvaluator.h>
 #include <g4eval/JetEvaluator.h>
+#include <g4eval/SvtxEvaluator.h>
 
 #include <fun4all/Fun4AllDstInputManager.h>
 #include <fun4all/Fun4AllDstOutputManager.h>
@@ -31,6 +31,7 @@
 R__LOAD_LIBRARY(libfun4all.so)
 R__LOAD_LIBRARY(libg4dst.so)
 R__LOAD_LIBRARY(libg4eval.so)
+R__LOAD_LIBRARY(libqa_modules.so)
 R__LOAD_LIBRARY(libHFJetTruthGeneration.so)
 
 #endif
@@ -48,6 +49,7 @@ void Fun4All_Readback(
 
   gSystem->Load("libfun4all.so");
   gSystem->Load("libg4dst.so");
+  gSystem->Load("libqa_modules");
 
   //---------------
   // Fun4All server
@@ -94,38 +96,79 @@ void Fun4All_Readback(
   }
 
   {
-
-    JetEvaluator* eval = new JetEvaluator("JETEVALUATOR",
-              "AntiKt_Tower_r04",
-              "AntiKt_Truth_r04",
-              string(outputFile) + "_JetEvaluator.root");
+    JetEvaluator *eval = new JetEvaluator("JETEVALUATOR",
+                                          "AntiKt_Tower_r04",
+                                          "AntiKt_Truth_r04",
+                                          string(outputFile) + "_JetEvaluator.root");
     se->registerSubsystem(eval);
-
   }
 
   // HF jet trigger moudle
   // build https://github.com/sPHENIX-Collaboration/analysis/tree/master/HF-Jet/TruthGeneration locally
   assert(gSystem->Load("libHFJetTruthGeneration") == 0);
   {
+      {HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+           "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r07");
+  jt->set_eta_min(-1);
+  jt->set_eta_max(1);
+  //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+  se->registerSubsystem(jt);
+}
+{
+  HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+      "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r04");
+  //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+  se->registerSubsystem(jt);
+}
+{
+  HFJetTruthTrigger *jt = new HFJetTruthTrigger(
+      "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r02");
+  //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
+  se->registerSubsystem(jt);
+}
+}
+
+// QA parts
+{
+  se->registerSubsystem(new QAG4SimulationCalorimeter("CEMC",
+                                                      static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
+  se->registerSubsystem(new QAG4SimulationCalorimeter("HCALIN",
+                                                      static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
+  se->registerSubsystem(new QAG4SimulationCalorimeter("HCALOUT",
+                                                      static_cast<QAG4SimulationCalorimeter::enu_flags>(QAG4SimulationCalorimeter::kProcessTower | QAG4SimulationCalorimeter::kProcessCluster)));
+
+  {
+    SimulationCalorimeterSum();
+    //    calo_qa->Verbosity(10);
+    se->registerSubsystem(calo_qa);
+
     {
-      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
-          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r07");
-      jt->set_eta_min(-1);
-      jt->set_eta_max(1);
-      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
-      se->registerSubsystem(jt);
+      QAG4SimulationJet *calo_jet7 = new QAG4SimulationJet(
+          "AntiKt_Truth_r07");
+      calo_jet7->add_reco_jet("AntiKt_Tower_r07");
+      calo_jet7->add_reco_jet("AntiKt_Cluster_r07");
+      calo_jet7->add_reco_jet("AntiKt_Track_r07");
+      //    calo_jet7->Verbosity(20);
+      se->registerSubsystem(calo_jet7);
+
+      QAG4SimulationJet *calo_jet4 = new QAG4SimulationJet(
+          "AntiKt_Truth_r04");
+      calo_jet4->add_reco_jet("AntiKt_Tower_r04");
+      calo_jet4->add_reco_jet("AntiKt_Cluster_r04");
+      calo_jet4->add_reco_jet("AntiKt_Track_r04");
+      se->registerSubsystem(calo_jet4);
+
+      QAG4SimulationJet *calo_jet2 = new QAG4SimulationJet(
+          "AntiKt_Truth_r02");
+      calo_jet2->add_reco_jet("AntiKt_Tower_r02");
+      calo_jet2->add_reco_jet("AntiKt_Cluster_r02");
+      calo_jet2->add_reco_jet("AntiKt_Track_r02");
+      se->registerSubsystem(calo_jet2);
     }
+
     {
-      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
-          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r04");
-      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
-      se->registerSubsystem(jt);
-    }
-    {
-      HFJetTruthTrigger *jt = new HFJetTruthTrigger(
-          "HFJetTruthTrigger.root", 5, "AntiKt_Truth_r02");
-      //            jt->Verbosity(HFJetTruthTrigger::VERBOSITY_MORE);
-      se->registerSubsystem(jt);
+      QAG4SimulationTracking *qa = new QAG4SimulationTracking();
+      se->registerSubsystem(qa);
     }
   }
 
@@ -137,6 +180,10 @@ void Fun4All_Readback(
   se->run(nEvents);
   // se->run(0);
 
+  // QA outputs
+  {
+    QAHistManagerDef::saveQARootFile(string(outputFile) + "_qa.root");
+  }
   //-----
   // Exit
   //-----

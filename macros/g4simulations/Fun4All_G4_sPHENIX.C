@@ -659,6 +659,15 @@ int Fun4All_G4_sPHENIX(
       calo_jet2->add_reco_jet("AntiKt_Track_r02");
       se->registerSubsystem(calo_jet2);
     }
+
+
+    if (do_tracking)
+    {
+
+      QAG4SimulationTracking * qa = new QAG4SimulationTracking();
+      se->registerSubsystem(qa);
+
+    }
   }
 
   if(do_write_output) {
